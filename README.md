@@ -1,2 +1,2 @@
-# cobol-tic-tac-toe
-Simple tic tac toe game written in COBOL
+# TIC TAC TOE
+Simple command line tic tac toe game written in COBOL.
