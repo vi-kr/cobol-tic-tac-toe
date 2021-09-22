@@ -1,0 +1,238 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.  MAIN.
+
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      *    DATEN FUER BILDSCHIRM-POSITIONEN
+         01 SCREEN-HEIGHT PIC 9(5).
+         01 SCREEN-WIDTH PIC 9(5).
+         01 FIELD-TOP-LEFT-LINE PIC 9(5).
+         01 FIELD-TOP-LEFT-COL PIC 9(5).
+         01 FIELD-PRINT-TO-X PIC 9(5).
+         01 FIELD-PRINT-TO-Y PIC 9(5).
+         01 SPIELER-AM-ZUG-LINE PIC 9(5).
+         01 SPIELER-AM-ZUG-COL PIC 9(5).
+         01 INPUT-LINE PIC 9(5).
+         01 INPUT-COL PIC 9(5).
+         01 INPUT-TEXT-COL PIC 9(5).
+         01 ZUG-ANZEIGE-LINE PIC 9(5).
+         01 ZUG-ANZEIGE-COL PIC 9(5).
+         01 TITLE-LINE PIC 9(5).
+         01 TITLE-COL PIC 9(5).
+         01 END-ANZEIGE-COL PIC 9(5).
+         01 GEWINNER-ANZEIGE-COL PIC 9(5).
+         01 X-HILFE-LINE PIC 9(5).
+         01 Y-HILFE-LINE PIC 9(5).
+         01 Y-HILFE-COL PIC 9(5).
+         01 Y-HILFE-COUNT PIC 9 VALUE 1.
+
+
+      *    SPIELDATEN
+         01 SPIELER PIC XX VALUE "BA".
+         01 SPIELER-SYMBOLE PIC XX VALUE "OX".
+         01 AKTUELLES-SYMBOL PIC X.
+         01 AKTUELLER-SPIELER PIC X(9).
+         01 SIEG-VERGLEICH PIC X(3).
+
+         01 ZUG-ABFRAGE-SUCC PIC 9.
+           88 SUCCESS VALUE 0.
+           88 FAILURE VALUE 1.
+
+         01 SPIELFELD.
+           05 Y-ACHSE OCCURS 3.
+             07 ZELLE PIC X OCCURS 3 VALUE "#".
+
+         01 Y-ZAEHLER PIC 9.
+         01 X-ZAEHLER PIC 9.
+         01 X-ZUG PIC 9.
+         01 Y-ZUG PIC 9.
+         01 GEWINN-STATUS PIC X VALUE " ".
+           88 GEWONNEN VALUE "G".
+           88 NICHT-GEWONNEN VALUE "N".
+
+         01 ZUG PIC 99 VALUE 1.
+
+       PROCEDURE DIVISION.
+
+           PERFORM SET-UP
+           PERFORM UNTIL GEWONNEN OR ZUG = 10
+             PERFORM FELD-ANZEIGEN
+             PERFORM ZUG-ABFRAGEN
+             PERFORM SIEG-UEBERPRUEFEN
+           END-PERFORM
+           PERFORM END-SCREEN
+
+           STOP RUN.
+
+         ZUG-ABFRAGEN SECTION.
+           MOVE FUNCTION CONCATENATE ("SPIELER "
+             SPIELER (FUNCTION MOD(ZUG 2) + 1:1))
+             TO AKTUELLER-SPIELER
+           PERFORM WITH TEST AFTER UNTIL SUCCESS
+             DISPLAY FUNCTION CONCATENATE
+              (AKTUELLER-SPIELER " IST AM ZUG.")
+              LINE SPIELER-AM-ZUG-LINE COL SPIELER-AM-ZUG-COL
+             DISPLAY "BITTE X-KOORDINATE EINGEBEN: "
+              LINE INPUT-LINE COL INPUT-TEXT-COL
+             ACCEPT X-ZUG LINE INPUT-LINE COL INPUT-COL
+             DISPLAY "BITTE Y-KOORDINATE EINGEBEN: "
+              LINE INPUT-LINE COL INPUT-TEXT-COL
+             ACCEPT Y-ZUG LINE INPUT-LINE COL INPUT-COL
+             EVALUATE TRUE
+             WHEN Y-ZUG > 3 OR X-ZUG > 3 OR Y-ZUG < 1 or x-zug < 1
+               DISPLAY "!!!!!UNGUELTIGES  FELD!!!!!"
+                LINE INPUT-LINE COL INPUT-TEXT-COL
+               CONTINUE AFTER 1 SECONDS
+             WHEN ZELLE (Y-ZUG X-ZUG) = "#"
+               MOVE SPIELER-SYMBOLE (FUNCTION MOD(ZUG 2) + 1:1)
+                TO AKTUELLES-SYMBOL
+               MOVE AKTUELLES-SYMBOL
+                TO ZELLE (Y-ZUG X-ZUG)
+               MOVE 0 TO ZUG-ABFRAGE-SUCC
+               ADD ZUG 1 GIVING ZUG
+             WHEN OTHER
+               DISPLAY "!!!!FELD BEREITS BELEGT!!!!"
+                LINE INPUT-LINE COL INPUT-TEXT-COL
+                MOVE 1 TO ZUG-ABFRAGE-SUCC
+               CONTINUE AFTER 1 SECONDS
+             END-EVALUATE
+           END-PERFORM
+           .
+
+         FELD-ANZEIGEN SECTION.
+           PERFORM VARYING Y-ZAEHLER
+             FROM 1 BY 1
+             UNTIL Y-ZAEHLER > 3
+               PERFORM VARYING X-ZAEHLER
+                 FROM 1 BY 1
+                 UNTIL X-ZAEHLER > 3
+                   COMPUTE FIELD-PRINT-TO-X
+                           = X-ZAEHLER + FIELD-TOP-LEFT-COL
+                   END-COMPUTE
+                   COMPUTE FIELD-PRINT-TO-Y
+                           = Y-ZAEHLER + FIELD-TOP-LEFT-LINE
+                   END-COMPUTE
+
+                   DISPLAY ZELLE (Y-ZAEHLER X-ZAEHLER)
+                     LINE FIELD-PRINT-TO-Y
+                     COL FIELD-PRINT-TO-X
+                END-PERFORM
+           END-PERFORM
+           DISPLAY "COBOL TIC-TAC-TOE"
+             LINE TITLE-LINE COL TITLE-COL
+           DISPLAY FUNCTION CONCATENATE ("ZUG " ZUG)
+             LINE ZUG-ANZEIGE-LINE COL ZUG-ANZEIGE-COL
+           .
+
+         SET-UP SECTION.
+           ACCEPT SCREEN-HEIGHT FROM LINES
+           ACCEPT SCREEN-WIDTH FROM COLUMNS
+
+           COMPUTE FIELD-TOP-LEFT-LINE = SCREEN-HEIGHT / 2 - 3
+           END-COMPUTE
+           COMPUTE FIELD-TOP-LEFT-COL = SCREEN-WIDTH / 2 - 3
+           END-COMPUTE
+
+           COMPUTE SPIELER-AM-ZUG-LINE = FIELD-TOP-LEFT-LINE + 7
+           END-COMPUTE
+           COMPUTE SPIELER-AM-ZUG-COL = SCREEN-WIDTH / 2 - 10
+           END-COMPUTE
+
+           COMPUTE ZUG-ANZEIGE-LINE = FIELD-TOP-LEFT-LINE - 5
+           END-COMPUTE
+           COMPUTE ZUG-ANZEIGE-COL = SCREEN-WIDTH / 2 - 3
+           END-COMPUTE
+
+           COMPUTE TITLE-LINE = FIELD-TOP-LEFT-LINE - 8
+           END-COMPUTE
+           COMPUTE TITLE-COL = SCREEN-WIDTH / 2 - 9
+           END-COMPUTE
+
+           ADD SPIELER-AM-ZUG-LINE 3 GIVING INPUT-LINE
+           COMPUTE INPUT-TEXT-COL = SCREEN-WIDTH / 2 - 15
+           END-COMPUTE
+           COMPUTE INPUT-COL = SCREEN-WIDTH / 2 + 15
+           END-COMPUTE
+
+           MOVE FIELD-TOP-LEFT-LINE TO Y-HILFE-LINE
+           ADD FIELD-TOP-LEFT-COL -2 GIVING Y-HILFE-COL
+           ADD FIELD-TOP-LEFT-LINE -1 GIVING X-HILFE-LINE
+
+           DISPLAY "X123"
+            LINE X-HILFE-LINE COL FIELD-TOP-LEFT-COL
+
+           DISPLAY "Y"
+            LINE Y-HILFE-LINE COL Y-HILFE-COL
+
+           PERFORM 3 TIMES
+             ADD Y-HILFE-LINE 1 GIVING Y-HILFE-LINE
+             DISPLAY Y-HILFE-COUNT
+              LINE Y-HILFE-LINE COL Y-HILFE-COL
+             ADD Y-HILFE-COUNT 1 GIVING Y-HILFE-COUNT
+           END-PERFORM
+           .
+
+         ALLE-FELDER-BELEGT-ENDE SECTION.
+           COMPUTE GEWINNER-ANZEIGE-COL = SCREEN-WIDTH / 2 - 8
+           END-COMPUTE
+           DISPLAY "NIEMAND GEWINNT."
+            LINE SPIELER-AM-ZUG-LINE COL GEWINNER-ANZEIGE-COL
+           .
+
+         GEWONNEN-ENDE SECTION.
+           COMPUTE GEWINNER-ANZEIGE-COL = SCREEN-WIDTH / 2 - 9
+           END-COMPUTE
+           DISPLAY FUNCTION CONCATENATE (AKTUELLER-SPIELER " GEWINNT.")
+            LINE SPIELER-AM-ZUG-LINE COL GEWINNER-ANZEIGE-COL
+           .
+
+         END-SCREEN SECTION.
+           PERFORM FELD-ANZEIGEN
+           DISPLAY "                                                   "
+             LINE ZUG-ANZEIGE-LINE COL ZUG-ANZEIGE-COL
+           DISPLAY "                                                   "
+             LINE SPIELER-AM-ZUG-LINE COL SPIELER-AM-ZUG-COL
+           COMPUTE END-ANZEIGE-COL = SCREEN-WIDTH / 2 - 5
+           END-COMPUTE
+           DISPLAY "SPIELENDE"
+            LINE ZUG-ANZEIGE-LINE COL END-ANZEIGE-COL
+           EVALUATE TRUE
+           WHEN GEWONNEN
+             PERFORM GEWONNEN-ENDE
+           WHEN ZUG = 10
+             PERFORM ALLE-FELDER-BELEGT-ENDE
+           END-EVALUATE
+           DISPLAY "                                                   "
+            LINE INPUT-LINE COL INPUT-TEXT-COL
+           DISPLAY "  ENTER ZUM BEENDEN DRUECKEN."
+            LINE INPUT-LINE COL INPUT-TEXT-COL
+           ACCEPT ZUG
+            LINE SCREEN-HEIGHT COL SCREEN-WIDTH
+           .
+
+         SIEG-UEBERPRUEFEN SECTION.
+           MOVE FUNCTION CONCATENATE (AKTUELLES-SYMBOL
+            AKTUELLES-SYMBOL AKTUELLES-SYMBOL)
+            TO SIEG-VERGLEICH
+           EVALUATE TRUE
+           WHEN Y-ACHSE (1) = SIEG-VERGLEICH
+            OR Y-ACHSE (2) = SIEG-VERGLEICH
+            OR Y-ACHSE (3) = SIEG-VERGLEICH
+             MOVE "G" TO GEWINN-STATUS
+           WHEN
+            FUNCTION CONCATENATE (ZELLE (1 1) ZELLE (2 1) ZELLE (3 1))
+            = SIEG-VERGLEICH OR
+            FUNCTION CONCATENATE (ZELLE (1 2) ZELLE (2 2) ZELLE (3 2))
+            = SIEG-VERGLEICH OR
+            FUNCTION CONCATENATE (ZELLE (1 3) ZELLE (2 3) ZELLE (3 3))
+            = SIEG-VERGLEICH OR
+            FUNCTION CONCATENATE (ZELLE (1 1) ZELLE (2 2) ZELLE (3 3))
+            = SIEG-VERGLEICH OR
+            FUNCTION CONCATENATE (ZELLE (1 3) ZELLE (2 2) ZELLE (3 1))
+            = SIEG-VERGLEICH
+             MOVE "G" TO GEWINN-STATUS
+           END-EVALUATE
+           .
